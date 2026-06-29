@@ -1,18 +1,32 @@
-Write-Host "=== Cameron's Scheduled Task Auditor ==="
+Write-Host "=== Cameron's Scheduled Task Auditor (Fixed Version) ==="
 
 $tasks = Get-ScheduledTask
-
 $report = @()
 
 foreach ($t in $tasks) {
     $action = $t.Actions | Select-Object -First 1
-    $exec = $action.Execute
-    $args = $action.Arguments
-    $path = $exec
 
+    # Skip tasks with no action or no executable
+    if ($action -eq $null -or $action.Execute -eq $null) {
+        $report += [PSCustomObject]@{
+            Name        = $t.TaskName
+            Path        = "No executable (COM handler or internal task)"
+            Arguments   = ""
+            Exists      = "N/A"
+            Company     = "N/A"
+            Signed      = "N/A"
+            Trigger     = ($t.Triggers | Select-Object -First 1).ToString()
+            Suspicious  = "NO"
+        }
+        continue
+    }
+
+    $path = $action.Execute
+    $args = $action.Arguments
     $exists = Test-Path $path
-    $signed = "Unknown"
+
     $company = "Unknown"
+    $signed = "Unknown"
     $suspicious = "NO"
 
     if ($exists) {
